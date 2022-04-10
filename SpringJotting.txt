@@ -1,0 +1,1729 @@
+start.spring.io - web application that helps you generate.
+
+HTTP - hyper transfer text protocol
+Request method also known as verb and are used to indicate the desired action to be performed.
+- GET - is a request for a resource 
+- HEAD - is like a GET, but only asks for the meta information without the body.
+- POST - is used to post data to the server. Use case for POST is to post form data to a server.(Create request)
+- PUT - is a reuqest for the enclosed entity to be stored at the suppiled URL. if the entity exists - it is expected to be updated.(Create or update request).
+- DELETE - is a request to delete the specified resource.
+- TRACE - will echo the received request, it can be used to see if request was altered by the imtermediate servers.
+- OPTIONS - returns the http methods supported by the server for the specific url.
+- CONNECT - converts the request to a transparent TCP/IP tunnel, typicall for https through an unencryped HTP proxy.
+- PATCH - applies partial modifications to the specified resource.
+
+HTTP status codes
+- 100 series are informational in nature.
+- 200 series indicate successful request. 201 created; 204 accepted
+- 300 series are redirections. 301 moved permanently 
+- 400 series are client errors. 401 not authorized; 404 not found
+- 500 series are server side errors. 503 service unavailable
+
+@MappedSuperclass 
+- A mapped superclass provides persistent entity state and mapping information but is not itself an entity.
+- A mapped superclass, unlike an entity, does not allow querying, persisting, or relationships to the superclass.
+- @MappedSuperclass annotation is used to designate a class as mapped superclass.
+
+Serializable is a marker interface (has no data member and method). It is used to "mark" Java classes so that the objects of these classes may get a certain capability
+
+Create a new Springboot project
+dependencies
+- spring web
+- spring data JPA.
+- H2 database
+
+JPA - Java Persistence API: it is a collection of classes and method to persistently store the vast amount of data into a database.
+It is an ORM object relational mapping tool.
+JPA entities should be put in "domain" or "model" packages
+
+POJO - Plain Old Java Object i.e your constructors (with and without initialization fields) and getters and setters
+
+it is important to implement an "An Equals and HashCode method" to prevent leakages
+we override the standard equals and hascode method provided by java to provide logic around the id property so that if two objects have the same id, hibernate and sets are going to consider them as the same object
+
+create a model folder 
+create a class Author and a Book class
+
+Author.class
+@Data - dis annotation helps with the creation of getters and setters for us.
+@Entity - dis tell spring boot that dis is an entity
+public class Author{
+	@Id - dis defines the primary key
+	@GeneratedValue(strategy = GenerationType.AUTO) - dis tells hibernate how the primary key will be generated, it tells your database to genearte an id
+	private Long id;
+	private String firstName;
+	private String lastName;
+	
+	@ManyToMany(mappedBy = "authors") - dis is mapping of many to many relationship
+	private Set<Book> books = new HashSet<>();
+}
+
+Book.class
+@Data
+@Entity
+public class Book{
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO) 
+	private Long id;
+	private String title;
+	private String isbn;
+
+	@ManyToMany
+	@JoinTable(name = "author_book", joinColumns = @JoinColumn(name="book_id"),
+	inverseJoinColumns = @JoinColumn(name="author_id")) - creating a join table and configuring that table
+	private Set<Author> authors = new HashSet<>();
+}
+
+Spring data repositiories - it implementing our repository pattern. it helps to significantly reduce the amount of boilerplate code required to implement data access layer for various persistence stores.
+
+create a new folder repository or Dao
+create a new interface AuthorRepository.
+public interface AuthorRepository extend CrudRepository<Author,Long>{}
+
+create a new interface BookRepository.
+public interface BookRepository extend CrudRepository<Book,Long>{}
+
+to Initialize Data with spring
+Since we are using a h2 database we are initialzing our datas into the database when the project is starting up
+create a new folder bootstrap
+create a new class BootStrapData
+
+@Component - dis tell spring boot that dis class is a component
+public class BootStrapData implements CommandLinRunner{
+	private final AuthorRepository authorRepository; // initializing an instance of author repository.
+	private final BookRepository bookRepository;
+
+	public BootStrapData(AuthorRepository authorRepository, BookRepository bookRepository){
+		this.authorRepository = authorRepository;
+	        this.bookRepository = bookRepository;
+	}
+
+	@Overrid
+	public void run(String... args) throws Exception{
+		//1
+		Author eric = new Author("Eric", "Evan");
+		Book ddd = new Book("Domain Driven Design", "123456");
+
+		eric.getBooks().add(ddd);
+		ddd.getAuthors().add(eric);
+
+		authorRepository.save(eric);
+		bookRepository.save(ddd);
+		
+		//2		
+		Author robb = new Author("robb", "John);
+		Book noESB= new Book("No Esb", "234rerwfesd");
+
+		robb.getBooks().add(ddd);
+		noESB.getAuthors().add(eric);
+
+		authorRepository.save(robb);
+		bookRepository.save(noESB);
+	}
+}
+Lombok Dependency and annotation:
+Lombok: Project Lombok is a Java library tool that generates code for minimizing boilerplate code. 
+The library replaces boilerplate code with easy-to-use annotations. just as getters, setters, contructors etc.
+
+in your pom.xml
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+</dependency>
+
+Annotations under lombok
+- @Getter/@Setter: this annotation helps with generating setter and getters for attributes in a class/entity.
+- @ToString: it helps in creating a toString method for your entity class.
+- @EqualAndHashCode: it generated hashCode and equls implementations from the fields of the object. 
+- @NoArgsConstructor, @RequiredArgsConstructor and @AllArgsConstructor: Constructors made to order: Generates constructors that take no arguments, one argument per final / non-nullfield, or one argument for every field.
+- @Data: a shortcut for @ToString, @EqualAndHashCode, @Getter/@Setter and @RequiredArgsConstructor.
+- @Builder: is a useful mechanism for using the Builder pattern without writing boilerplate code. We can apply this annotation to a Class or a method.
+
+H2 database console
+go to application.properities den add
+- spring.h2.console.enabled = true
+
+start up your spring project and navigate to localhost:8080/h2-console
+check the JDBC URL to the one displayed in intellij commandline
+
+
+What is MVC?
+it is a common design pattern for GUI and web application
+M - model, V- view and C- controller 
+which helps in separaating concerns.
+
+Database concerns shouldnt be done in the controller
+request goes to controller(http) the controller determines how to get the model the returns the model to the view, the model shouldnt have any business logic,'the controller determines who to ask the model from. the view just renders the view to client
+for spring, we would be using thymeleaf(a templating engine) take the model
+
+WebJars - are client side dependencies packaged into JAR archive files. They work with most JVM containers and web frameworks. 
+
+Best practices in software design
+- OOP/SOLID
+- TDD
+- naming conventions
+- software development lifecycle.
+
+Solid principles of OOP:
+	- Single Responsibility Principle
+		- every class should have a single responsibility.
+		- there should never be more than one reason for a class to change.
+	- Open Closed Principle
+		- your class should be open for extension but closed for modification.
+		- use private vairables with getters and setters - only when you need them
+
+Dependency Injection -is where a needed dependency is injected by another object.
+the class being injected has no responsiblity in instantiating the object being injected.
+
+Spring Configuration Options:
+- XML based configuration: it was introduced in spring framework 2.0, it is common in legacy spring application 
+and it is supported till now.
+- Annotation Based configuration: it was introducted in spring framework 3 and it picked up via 'Component scans', 
+it is also refer to a class level annotations.
+- Java based configuration: it was introducted in spring framework 3, it uses Java classes to define spring beans
+and configuration classes are defined with @configuration annotation and beans are declarred with @Bean annotation.
+- Groovy Bean definition DSL(domain specific language) configuration - it was introduced in spring framework 4.0 and 
+allow you declare beans in groovy.
+
+Spring Framework Stereotypes
+Stereotype - a fixed general image or set of characteristics which represent a particular type of person or thing.
+Spring stereotypes are used to define spring beans in spring context. 
+Avaiable Stereotypes - @Component (highest level)
+		       @Controller
+		       @Repository - a mechanism for encpsulating storage, retrieval and search behaviour which emulates a collection of objects
+		       @Service - an operation offered as an interface that stands alone in the model, with no encapsulated state.
+		       @RestController (convenience annotation representing @Controller and @ResponseBody)
+
+Spring mvc - controller, service, model.
+
+Controller
+- a java class
+- marked with an annotations (@RESTController(for both classes and method) 
+- to make a class rest controller - you can have method mapped to a particular request when a user makes the request, 
+
+@RequestMapping(value=url,method= RequestMethod.GET,.POST,.PUT,.PATCH,.DELETE)
+(method is included for only methods)- it takes the url that the method needs to map too and the http method).
+- the annotation has the URL access to trigger it and method to run when accessed.
+@RequestMapping
+-adding a variable to the URL and method type
+	@RequestMapping(value="/topics/{id}", method=RequestMethod.GET) - id is a variable passed in the URL i.e /topics/1
+- how to pass the vairable into the method.
+	public Topic getTopic(@PathVariable String id) 
+- handling a post request 
+	@RequestMapping(value="/topics", method=ReuqestMethod.POST)
+	public void addTopic(@RequestBody Topic topic)
+-@Requestbody helps with the getting the jsonobject from the request payload.
+
+- handling an update request
+	@RequestMapping(value="/topics/{id}", method=RequestMethod.PUT)
+	public void updateTopic(@RequestBody Topic topic, @Pathvariable String id)
+
+- handling a delete request
+	@RequestMapping(value="/topics/{id}", method=RequestMethod.DELETE)
+	public void deleteTopic(@Pathvariable String id)
+
+pom.xml- (is like package.json in nodejs): it where dependencies are added.
+
+Service
+-a java class (spring store a single instance of the class, when 
+the class is called in another class it is only that one instance that work).
+- marked with an annotation (@Service).
+
+to import it into another class or service:
+@Autowire 
+private TopicService TopicService
+
+- @Autowired- springboot annotation it makes something that need injections
+
+Model
+- a java class that contains the entity structure.
+
+Repository
+Spring boot CrudRepository vs JpaRepository
+CrudRepository: it contains methods for CRUD operations. It is defined in the package org.springframework.data.repository. 
+It extends the Spring Data Repository interface. It provides generic Crud operation on a repository. If we want to use CrudRepository 
+in an application, we have to create an interface and extend the CrudRepository.
+i.e
+public interface UserDao extends CrudRepository<User ->entity model, Long-> id data type>{} 
+
+
+JpaRepository: it is the combination of CrudRepository and PagingAndSortingRepository, which provides additional
+methods such as flushing, presistence context and deletes a record in a batch.
+i.e
+public interface UserDao extends JpaRepository<User ->entity model, Long-> id data type>{}
+
+
+application.properties: customizing spring boot application.(default properties file)
+
+adding a new properties file
+create a new properties file in resources folder
+- datasource.properties
+guru.username=John
+guru.password=somepass
+guru.dburl=url
+
+create a bean class fakeDataSource.class
+@Data
+public class FakeDataSource{
+	private String user;
+	private String password;
+	private String url;
+}
+
+then create a propertyConfig class
+- propertyConfig.class
+@configuration
+public class PropertyConfig{
+	@Value("${guru.user}")
+	String user;
+
+	@Value("${guru.password}")
+	String password;
+
+	@Value("${guru.dburl}")
+	String url;
+
+	public FakeDataSource fakeDataSource(){
+		FakeDataSource fakeDataSource = new FakeDataSource();
+		fakeDataSource.setUser(user);
+		fakeDataSource.setPassword(password);
+		fakeDataSource.setUrl(url);
+		return fakeDataSource;     
+	}
+
+	@Bean
+	public static PropertySourcePlaceholderConfigurer properties(){
+		PropertySourcePlaceholderConfigurer propertySourcePlaceholderConfigurer = new PropertySourcePlaceholderConfigurer();
+		return propertySourcePlaceholderConfigurer;
+	}
+}
+
+
+YAML to configure spring properities:
+it a markup language, which is more suited in describing a data structure/properties.
+
+syntax:
+name: John
+names: 
+	- John
+	- Paul
+pound_sign: "#"
+false: no
+string_val: "this  is it's quote"
+colon_string: "my courses: one two three"
+
+just change the application.properties to application.yml
+guru:
+   username: user
+   password: password
+   url: someURL
+- pratical example of yml 
+
+
+JPA (Java persistence API)- it like you do ORM when connecting to relational database.
+JPA entity relation
+ - One to One - @OneToOne (the foreign key is used to find ownership reference)
+	one entity is related to one other entity.
+ - One to Many - @OneToMany
+	one entity is related to many entities (List, set, Map).
+ - Many to One - @ManyToOne 
+	inverse relationship to One to many
+ - Many to Many - @ManyToMany (mappedBy is ued to define the filed with 'owns' the reference of the relationship)
+	many entities are related to many entities. A join table is used to define the relationship.
+
+Many-to-Many requires the use of join table.
+
+
+Unidirectional vs Bidirectional
+- Unidirectional is one way mapping, One side of the relationship will know about the other
+- bidirectional is two way, both sides know about each other.(it is generally recommended).
+
+
+Types of fetch used in JPA
+- Lazy: tells Hibernate to only fetch the related entities from the database when you use the relationship. This is a good idea in general because 
+there’s no reason to select entities you don’t need for your uses case. 
+- Eager: tells Hibernate to get all elements of a relationship when selecting the root entity. As I explained earlier, this is the default for to-one relationships, 
+and you can see it in the following code snippets.
+The default depends on the cardinality of the relationship. All to-one relationships use FetchType.EAGER 
+and all to-many relationships FetchType.LAZY.
+
+cascading - Entity relationships often depend on the existence of another entity, 
+for example the Person–Address relationship. Without the Person, the Address entity doesn't have any 
+meaning of its own. When we delete the Person entity, our Address entity should also get deleted.
+Cascading is the way to achieve this. When we perform some action on the target entity, 
+the same action will be applied to the associated entity.
+
+JPA cascade types? it controls how changes are cascaded from parent object ot child objects.
+Types of JPA cascade type?
+- All: all the above cascade operations can be applied to the entities related to parent entity.
+- PRESIST:  if the parent entity is persisted then all its related entity will also be persisted.
+- MERGE:  if the parent entity is merged then all its related entity will also be merged.
+- REFERESH: if the parent entity is refreshed then all its related entity will also be refreshed.
+- REMOVE: if the parent entity is removed then all its related entity will also be removed.
+- DETACH: if the parent entity is detached then all its related entity will also be detached.
+
+What's hibernate's default persistence strategy for inheritance? Single table- one table is created for the superclass and
+inheriting subclasses.
+
+Disadvantage of the single table strategy for inheritance? Single table can lead to a lot of unused database columns.
+
+Disadvantage of the join table strategy for inheritance? Fetching subclasses entities required a join to the table of the superclass
+
+
+JPA can automatically update timestamp properties using:
+@PrePersist or @PreUpdate within JPA or Hibernate specfic @CreationTimestamp or @UpdateTImestamp 
+
+
+
+H2 database (hibernate DDl Auto)
+DDL - data definition language.
+DML - data manipulation language.
+
+DDL vs DML
+- DDL is used ot define database structures such as tables and indexes.
+- DML is used with data operation such as inserts and updates
+
+hibernate property is set by the spring property 
+spring.jpa.hibernate.ddl-auto - it controls what if any DDL operations hibernate will perform on startup
+options are: none(for an non-embedded database), validate, update, create, create-drop(for an embedded database)
+
+data.sql or schema.sql - the two files spring boot will use to initialize the database.
+
+
+Spring Data JPA - helps making connection to relational database very easy.
+@Entity - to tell JPA it is an entity class.
+@Id - to tell JPA that this memeber is the primary key.
+mapping entities together in relational database - we use annotation such as @ManyToMany @ManyToOne
+- connecting your logic for entity class to your service.
+@Repository  -> it is a marker for any class that fulfils the role or stereotype of a repository(also know as Data Access object or DAO)
+public interface TopicRepository extends CrudRepository<your entity class, Id data type>{
+	//add your own methods.
+	public List<Course> FindByName(String name) - //to get courses by name, the spring data JPA will be able to understand the method
+} 
+
+Thymeleaf
+- it a java template engine producing XML, XHTML and HTML5.
+- it is a replacement for JSPs(Java server pages).
+-  it a 'Natural' template Engine.
+- it is not tied to web environment.
+
+Thymeleaf vs JSP
+- Thymeleaf templates are valid HTML document you can view in the browser.
+- JSP files are not valid HTML.
+- the natural templating ablitiy allows you to perform rapid development, without the need to run a container to parse the template.
+
+
+
+Spring Security
+it is an application framework that let you do application level security.
+- login/logout functionalities
+- allow/block access URLs to logged in users
+- allow/block access to URLs to logged users AND with certain roles
+
+What spring  security can do?
+- user name/ password authentication
+- SSO/ okta/ LDAP
+- App level Authorization.
+- Intra App Authorzation like OAuth 
+- Microservice security (using token, JWT)
+- Method Level Authority.
+
+
+Core concepts in Spring security 
+- Authentication: logging into an application.
+Notes on authentication:
+	- Knowledge Based authentication: as to do with password, pincode, answer to a secret/personal question.
+	- Possession based authentication: phone/ text messages, access token device or key card.
+	- Multifactor authentication: combination of both Knowledge based and possession based authentication.
+- Authorization: can the user be able to do wat they are trying to do.
+- Principal: currently logged in user.
+- Granted Authority: the granted authority for a current logged in users.
+- Role: grouping of granted authorites.
+
+Adding spring security to a springboot framework
+-using spring-boot-starter-security dependency.
+
+Note:
+Filters is an object used to intercept the HTTP request and responses of your application 
+by using filters we can perform two operation sat two instances- 
+i. before sending the request to the controller.
+ii. before sending a repsonse to the client.
+
+Spring security default behavior.
+- it add mandatory authentication for all URLs expect errors.
+- handles login error
+- adds login form.
+- creates a user and sets a default password.
+
+to customise user and password
+- in application.properities do spring.security.user.name = yourusername
+ spring.security.user.password = yourpassword
+
+configuring your own spring security authentication
+-create a new class SecurityConfiguration.
+@EnableWebSecurity - dis tell spring that dis class is a web security configuration.
+public class SecurityConfiguration extends WebSecurityConfigureAdapter{
+
+	@Override
+	protected void configure(AuthenticationManagerBuilder auth) throws Exception{
+		
+		auth.inMemoryAuthentication()
+			.withUser("blah").password("blah").roles("USER");//to add more users juust use '.and()'
+	}
+
+	@Bean
+	public PasswordEncoder getPasswordEncoder(){
+		return NoOpPasswordEncoder.getInstance();
+	}
+}
+
+- how to configure authorization
+adding different levels of access controls to endpoints.
+- modifying SecurityConfiguration class
+- HttpSecurity is the object incharge for for configuring the paths and the access levelf  for the paths.
+using webSecurityConfigureAdapter to get access to HttpSecurity object.
+@EnableWebSecurity - dis tell spring that dis class is a web security configuration.
+public class SecurityConfiguration extends WebSecurityConfigureAdapter{
+
+	@Override
+	protected void configure(AuthenticationManagerBuilder auth) throws Exception{
+		
+		auth.inMemoryAuthentication()
+			.withUser("blah").password("blah").roles("USER");//to add more users juust use '.and()'
+	}
+
+	@Bean
+	public PasswordEncoder getPasswordEncoder(){
+		return NoOpPasswordEncoder.getInstance();
+	}
+
+	@Override
+	protected void configure(HttpSecurity http) throws Exception{
+		http.authorizeRequests()
+			.antMatchers("/admin/**").hasRole("ADMIN")
+			.antMatchers("/user/**").hasAnyRole("USER", "ADMIN)
+			.antMatchers("/").permitAll()
+			.and().formLogin();
+			//.antMatchers("/admin/**").hasAnyRole("USER", "ADMIN") to allow multiple rows
+	//the process going from the most restrictive to the less restrictive
+	}
+}
+
+-Authentication performed by spring boot
+- takes in inputs which are credientials and returns an output which is the prinicipal.
+  AuthenticationProvider is in charger of doing authentication which uses authenticate() method.
+the prinicipal holds the information of current logged in user.
+- you can have multiple authenticationProvider which knows what type of input they expect 
+  using the supports() method that returns a boolean if an authenticationProvider if it 
+  supports the inputs or not .
+
+- ProviderManager implements AuthenticationManager authenticate(): it is the one in charge of 
+  handling the multiple authenticationProvider according to credentials or input.
+
+- UserDetailsServices loadUserByUserName() it is incharger of returning user details after a successful authentication.
+
+
+Using JDBC authentication with spring security.
+//using a default schema
+@EnableWebSecurity
+public class SecurityConfiguration extends WebSecurityConfigureAdapter{
+	
+	//adding a datasource to spring security.
+	@Autowired
+	DataSource dataSource;
+	
+	@Override
+	protected void configure(AuthenticationManagerBuilder auth) throws Exception{
+		auth.jdbcAuthentication()
+			.dataSource(datasource)
+			//adding default schema not an idea case just for learning 
+			.withDefaultSchema()
+			.withUser(
+				User.withUsername("user")
+				.password("pass").role("USER")	
+			)
+			.withUser(
+				User.withUsername("admin")
+				.password("pass").role("ADMIN")	
+			);
+	}
+
+
+	@Override
+	protected void configure(HttpSecurity http) throws Exception{
+		http.authorizeRequests()
+			.antMatchers("/admin/**").hasRole("ADMIN")
+			.antMatchers("/user/**").hasAnyRole("USER", "ADMIN)
+			.antMatchers("/").permitAll()
+			.and().formLogin();
+	}
+
+	@Bean
+	public PasswordEncoder getPasswordEncoder(){
+		return NoOpPasswordEncoder.getInstance();
+	}
+}
+
+//for schema
+@EnableWebSecurity
+public class SecurityConfiguration extends WebSecurityConfigureAdapter{
+	
+	//adding a datasource to spring security.
+	@Autowired
+	DataSource dataSource;
+	
+	@Override
+	protected void configure(AuthenticationManagerBuilder auth) throws Exception{
+		auth.jdbcAuthentication()
+			.dataSource(datasource)
+			.userByUsernameQuery("select username, password, enabled"
+				+"from users "
+				+"where username = ?");
+			.authoritiesByUsernameQuery("select username, authority"
+				+"from authorities "
+				+"where username = ?");
+	}
+
+
+	@Override
+	protected void configure(HttpSecurity http) throws Exception{
+		http.authorizeRequests()
+			.antMatchers("/admin/**").hasRole("ADMIN")
+			.antMatchers("/user/**").hasAnyRole("USER", "ADMIN)
+			.antMatchers("/").permitAll()
+			.and().formLogin();
+	}
+
+	@Bean
+	public PasswordEncoder getPasswordEncoder(){
+		return NoOpPasswordEncoder.getInstance();
+	}
+}
+
+- Spring security with JPA authentication and mysql
+using UserDetailService to handle returning of the current logged in user.
+@EnableWebSecurity
+public class SecurityConfiguration extends WebSecurityConfigureAdapter{
+	
+	@Autowired
+    	private CustomDetailService customDetailService;
+	
+	@Override
+	protected void configure(AuthenticationManagerBuilder auth) throws Exception{
+		auth
+                    .userDetailsService(customDetailService)
+                    .passwordEncoder(passwordEncoder());;
+	}
+
+
+	@Override
+	protected void configure(HttpSecurity http) throws Exception{
+		http.authorizeRequests()
+			.antMatchers("/admin/**").hasRole("ADMIN")
+			.antMatchers("/user/**").hasAnyRole("USER", "ADMIN)
+			.antMatchers("/").permitAll()
+			.and().formLogin();
+	}
+
+	@Bean
+	public PasswordEncoder getPasswordEncoder(){
+		return NoOpPasswordEncoder.getInstance();
+	}
+}
+
+- create a MyUserDetailService class
+//dis class will check for the user and return if the user details if the user is found or not.
+@Service
+public class MyUserDetailService implements UserDetailService{
+	
+	@Autowired
+	private UserDao userDao;
+
+	@Override
+	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        	User user = this.userDao.findUserByUserEmail(email);
+        	CustomDetail userDetail  = null;
+        	if(user !=null){
+            		userDetail= new CustomDetail();
+            		userDetail.setUser(user);
+        	}else{
+            		throw  new UsernameNotFoundException("user not exist with email: " +email);
+        	}
+        	return userDetail;
+    	}
+}
+
+- create a myUserDetails class
+//the userdetails class and the necessary methods to override
+@Data //lombok annotation that does setters and getters automatically 
+public class CustomDetail implements UserDetails {
+
+    private User user;
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return user.getRoles().stream().map(r -> new
+                SimpleGrantedAuthority("ROLE_"+r)).collect(Collectors.toList());
+    }
+
+    @Override
+    public String getPassword() {
+        return user.getUserPassword();
+    }
+
+    @Override
+    public String getUsername() {
+        return user.getUserEmail();
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return this.user.getUserIsActive() == 1;
+    }
+}
+
+-UserDao class
+@Repository
+public interface UserDao extends JpaRepository<User,Long> {
+    User findUserByUserEmail(String userEmail);
+
+}
+
+-Springboot + spring security with LDAP from scratch
+LDAP - lightweight directory access protocol: is a software protocol for enabling anyone to 
+locate data about organizations, individuals and other resources such as files and devices in a network.
+it can be used to manage authentiction and authorization.
+
+dependencies needed:
+- spring web.
+- spring security.
+- unboundid-ldapsdk.
+- spring-ldap-core.
+- spring-security-ldap.
+
+go to application.properties to setup ldap
+spring.ldap.embedded.port=8389
+spring.ldap.embedded.ldif= classpath:ldap-data.ldif //ldif - ldap data interchange formate, the formate for working with ldap
+spring.ldap.embedded.base.dn = dc=spring-framework,dc=org //tells where the root node is.
+
+
+-in resources folder create ldap-data.ldif file
+dis is where you will add the data.
+in ldap-data.ldif add.
+
+dn: dc=springframework,dc=org
+objectclass: top
+objectclass: domain
+objectclass: extensibleObject
+dc: springframework
+
+dn: ou=groups,dc=springframework,dc=org
+objectclass: top
+objectclass: organizationalUnit
+ou: groups
+
+dn: ou=subgroups,ou=groups,dc=springframework,dc=org
+objectclass: top
+objectclass: organizationalUnit
+ou: subgroups
+
+dn: ou=people,dc=springframework,dc=org
+objectclass: top
+objectclass: organizationalUnit
+ou: people
+
+dn: ou=space cadets,dc=springframework,dc=org
+objectclass: top
+objectclass: organizationalUnit
+ou: space cadets
+
+dn: ou=\"quoted people\",dc=springframework,dc=org
+objectclass: top
+objectclass: organizationalUnit
+ou: "quoted people"
+
+dn: ou=otherpeople,dc=springframework,dc=org
+objectclass: top
+objectclass: organizationalUnit
+ou: otherpeople
+
+dn: uid=ben,ou=people,dc=springframework,dc=org
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+cn: Ben Alex
+sn: Alex
+uid: ben
+userPassword: $2a$10$c6bSeWPhg06xB1lvmaWNNe4NROmZiSpYhlocU/98HNr2MhIOiSt36
+
+dn: uid=bob,ou=people,dc=springframework,dc=org
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+cn: Bob Hamilton
+sn: Hamilton
+uid: bob
+userPassword: bobspassword
+
+dn: uid=joe,ou=otherpeople,dc=springframework,dc=org
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+cn: Joe Smeth
+sn: Smeth
+uid: joe
+userPassword: joespassword
+
+dn: cn=mouse\, jerry,ou=people,dc=springframework,dc=org
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+cn: Mouse, Jerry
+sn: Mouse
+uid: jerry
+userPassword: jerryspassword
+
+dn: cn=slash/guy,ou=people,dc=springframework,dc=org
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+cn: slash/guy
+sn: Slash
+uid: slashguy
+userPassword: slashguyspassword
+
+dn: cn=quote\"guy,ou=\"quoted people\",dc=springframework,dc=org
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+cn: quote\"guy
+sn: Quote
+uid: quoteguy
+userPassword: quoteguyspassword
+
+dn: uid=space cadet,ou=space cadets,dc=springframework,dc=org
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+cn: Space Cadet
+sn: Cadet
+uid: space cadet
+userPassword: spacecadetspassword
+
+
+
+dn: cn=developers,ou=groups,dc=springframework,dc=org
+objectclass: top
+objectclass: groupOfUniqueNames
+cn: developers
+ou: developer
+uniqueMember: uid=ben,ou=people,dc=springframework,dc=org
+uniqueMember: uid=bob,ou=people,dc=springframework,dc=org
+
+dn: cn=managers,ou=groups,dc=springframework,dc=org
+objectclass: top
+objectclass: groupOfUniqueNames
+cn: managers
+ou: manager
+uniqueMember: uid=ben,ou=people,dc=springframework,dc=org
+uniqueMember: cn=mouse\, jerry,ou=people,dc=springframework,dc=org
+
+dn: cn=submanagers,ou=subgroups,ou=groups,dc=springframework,dc=org
+objectclass: top
+objectclass: groupOfUniqueNames
+cn: submanagers
+ou: submanager
+uniqueMember: uid=ben,ou=people,dc=springframework,dc=org
+
+
+-create a securityConfiguration class
+@EnableWebSecurity
+public class SecurityConfiguration extends WebSecurityConfigureAdapter{
+
+	
+	@Override
+	protected void configure(AuthenticationManagerBuilder auth) throws Exception{
+		auth.ldapAuthentication()
+			.userDnPatterns("uid={0}, ou=people") //dn - distingish name: dis tells where user's informations are.
+			.groupSearchBase("ou=groups")
+			.contextSource()
+			.url("ldap://localhost:8389/dc=springframework,dc=org")//where the ldap server is posted.
+			.and()
+			.passwordCompare()
+			.passwordEncoder(new LdapShaPasswordEncoder())//password encoder class.
+			.passwordAttribute("userPassword") //where the user password is stored.
+	}
+
+
+	@Override
+	protected void configure(HttpSecurity http) throws Exception{
+		http.authorizeRequests()
+			.anyRequest().fullyAuthenticated()
+			.and().formLogin();
+	}
+}
+
+
+-Spring security with JWT authorization.
+JWT - authorization strategies: - session token and JSON web token.
+Session token and JSON web token are ways to keep track of the current logged user.
+session token - reference token.
+JSON web token - value token.
+
+Structure of a JWT
+- JWT is made of header.payload.signature
+payload contains the data
+header contains how it signed.
+header and signature it is wat lends authenticity 
+
+-Whats OAuth?
+Oauth is created for authorization between services. Just like adding google auth to your service.
+Access delegation for a particular reason.
+OAuth Access token - contains user-allowed permissions which is trustable that can't be tampered.
+
+
+JWT authorization in spring security from scratch:
+- create a new authentication API endpoint
+- examin every incoming request for a valid JWT and authorize. 
+
+New Project
+dependencies needed:
+- spring web.
+- spring security.
+- jsonwebtoken
+
+steps:
+- Create a user entity
+
+- UserDao class
+@Repository
+public interface UserDao extends JpaRepository<User,Long> {
+    User findUserByUserEmail(String userEmail);
+}
+
+- Create a customUserDetails class
+//the userdetails class and the necessary methods to override
+@Data //lombok annotation that does setters and getters automatically 
+public class CustomDetail implements UserDetails {
+
+    private User user;
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return user.getRoles().stream().map(r -> new
+                SimpleGrantedAuthority("ROLE_"+r)).collect(Collectors.toList());
+    }
+
+    @Override
+    public String getPassword() {
+        return user.getUserPassword();
+    }
+
+    @Override
+    public String getUsername() {
+        return user.getUserEmail();
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return this.user.getUserIsActive() == 1;
+    }
+}
+
+- Create a MyUserDetailService class
+//dis class will check for the user and return if the user details if the user is found or not.
+@Service
+public class MyUserDetailService implements UserDetailService{
+	
+	@Autowired
+	private UserDao userDao;
+
+	@Override
+	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        	User user = this.userDao.findUserByUserEmail(email);
+        	CustomDetail userDetail  = null;
+        	if(user !=null){
+            		userDetail= new CustomDetail();
+            		userDetail.setUser(user);
+        	}else{
+            		throw  new UsernameNotFoundException("user not exist with email: " +email);
+        	}
+        	return userDetail;
+    	}
+}
+
+- create a JwtUtils class
+@Component
+public class JwtUtils {
+
+    private String SECRET_KEY = "secret";
+
+    //extracts the username from the token
+    public String extractUsername(String token){
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    //extracts the expiration from the token
+    public Date extractExpiration(String token){
+        return extractClaim(token, Claims::getExpiration);
+    }
+
+    //extracts the claims from the token
+    public <T> T extractClaim(String token, Function<Claims, T> claimResolver){
+        final Claims claims = extractAllClaims(token);
+        return claimResolver.apply(claims);
+    }
+
+    private Claims extractAllClaims(String token){
+        return Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody();
+    }
+
+    private Boolean isTokenExpired(String token){
+        return extractExpiration(token).before(new Date());
+    }
+
+    //dis method generates a jwt using the userDetails
+    public String generateToken(CustomDetail userDetails){
+        Map<String, Object> claims = new HashMap<>();
+        return createToken(claims, userDetails.getUsername());
+    }
+
+    //dis method creates the jwt token using claims and subject which is the username
+    private String createToken(Map<String, Object> claims,String subject){
+        return Jwts.builder().setClaims(claims).setSubject(subject).setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
+                .signWith(SignatureAlgorithm.HS512, SECRET_KEY).compact();
+    }
+
+    public Boolean validateToken(String token, CustomDetail userDetails){
+        final String username = extractUsername(token);
+        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    }
+}
+
+next step is to intercept all incoming requests, extract the jWT from the header.
+validate and set in excution context.
+
+- create a filter to do dis. (JwtRequestFilter class)
+@Component
+public class JwtRequestFilter extends OncePerRequestFilter {
+    @Autowired
+    private CustomDetailService customDetailService;
+
+    @Autowired
+    private JwtUtils jwtTokenUtil;
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException{
+        final String authorizationHeader= request.getHeader("Authorization");
+
+        String username = null;
+        String jwt = null;
+
+        if(authorizationHeader != null && authorizationHeader.startsWith("Bearer ")){
+            jwt = authorizationHeader.substring(7); //leaving out "Bearer "
+            username = jwtTokenUtil.extractUsername(jwt);	//to extract username
+        }
+
+        //verifying if username is not null and the security context doesnt have any value
+        if(username != null && SecurityContextHolder.getContext().getAuthentication() == null){
+            CustomDetail userDetails = this.customDetailService.loadUserByUsername(username); //get the userDetails
+            //validate the token with userDetails
+            if(jwtTokenUtil.validateToken(jwt, userDetails)){
+                //create a new username and password authentication token
+                //NB: dis will be normal operation for spring security by since we are overriding it we will have to set it up ourselves.
+                UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+
+                //setting the details
+                usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+            }
+        }
+        chain.doFilter(request, response);
+    }
+}
+
+- create JwtAuthenticationEntryPoint class
+NB - This class will extend Spring's AuthenticationEntryPoint class and override its method commence. 
+It rejects every unauthenticated request and send error code 401
+
+@Component
+public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint{
+    @Override
+    public void commence(HttpServletRequest request, HttpServletResponse response,
+                         AuthenticationException authException) throws IOException {
+
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+    }
+}
+
+-SecurityCOnfiguration class
+
+@EnableWebSecurity
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+    @Autowired
+    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
+    @Autowired
+    private CustomDetailService customDetailService;
+
+    @Autowired
+    private JwtRequestFilter jwtRequestFilter;
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception{
+        auth
+                .userDetailsService(customDetailService)
+                .passwordEncoder(passwordEncoder());;
+    }
+
+    @Override
+    protected void configure(HttpSecurity httpSecurity) throws Exception {
+        // We don't need CSRF for this example
+        httpSecurity.csrf().disable()
+                // dont authenticate this particular request
+                .authorizeRequests().antMatchers("/authenticate").permitAll().
+                // all other requests need to be authenticated
+                        anyRequest().authenticated().and().
+                // make sure we use stateless session; session won't be used to
+                // store user's state.
+                        exceptionHandling().authenticationEntryPoint(jwtAuthenticationEntryPoint).and().sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+        // Add a filter to validate the tokens with every request
+        httpSecurity.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder(){
+        return NoOpPasswordEncoder.getInstance();
+    }
+
+    @Override
+    @Bean
+    public AuthenticationManager authenticationManagerBean() throws Exception{
+        return super.authenticationManagerBean();
+    }
+}
+
+- next step is to create an /authenticate API endpoint
+which will accept user id and password den return JWT as response.
+
+
+- create AuthenticationRequest class in the model folder - dis class serves a the user input required from the user
+@Data - dis annotation helps with getters, setters and response.
+public class AuthenticationRequest{
+	private String username;
+	private String password;
+}
+ 
+- create an AuthenticationResponse class in model folder - dis is the reponse structure after login
+@Data
+public class AuthenticationResponse{
+	private final String jwt;
+}
+
+
+- create an auth controller 
+@RestController
+@RequestMapping(value="/auth")
+public class Auth{
+	
+	@Authowired
+	private AuthenticationManager authenticationManager;//getting an instance of the authentication manager
+
+	@Authowired
+	private MyUserDetailService userDetailsService;
+
+	@Authowired
+	private JwtUtil jwtTokenUtil;
+
+	@RequestMapping(value = "/authenticate", method=RequestMethod.POST)
+	public ResponseEntity<?> createAuthenticationToken(@ReuqestBody AuthenticationRequest authenticationRequest) throws Exception{
+		try{
+			authenticationManager.authenticate(
+				new UsernamePasswordAuthenticationToken(authentication.getUsername(),
+					authentication.getPassword()));
+		}
+		catch(BadCredentialsException e){
+			throw new Exception("Incorrect username or password", e)
+		}
+
+		final UserDetails userDetails = userDetailsService.loadUserByUsername(authenticationRequest.getUsername());
+		final String jwt = jwtTokenUtil.generateToken(userDetails);
+
+		return ResponseEntity.ok(new AuthenticationResponse(jwt));
+	}
+}
+
+
+NB in postman add to your header
+Key: Authorization
+Value: Bearer jwtToken
+
+- How do OAuth flows work and key teminologies:
+1. Resource - it is something that is been accessed.
+2. Resouce Owner - it is the person that has access to the resource, an eneity that capable of granting access to the protected resource.
+3. Resource server - it server hosting the protected resource.
+4. Client - it is an application that needs access to the protected resource, it is an application that makes protected resource
+   request on behalf of the resource owner and with its authorization.
+5. authorization serve - it is serve that issues access token to the client.
+
+OAuth Flow 1:
+Authorization Code flow
+Authorization code flow is used to obtain an access token to authorize API requests. 
+Authorization code flow is the most flexible of the three supported authorization flows and 
+is the recommended method of obtaining an access token for the API. This authorization flow is best suited to 
+applications that have access to secure, private storage such as web applications deployed on a server
+
+OAuth Flow 2:
+Implicit flow
+Not as secure
+primary used with short-lived access token.
+Used with javascript apps
+Implicit Grant flow is an authorization flow (OAuth 2.0) for browser based apps. If you are building a browser only app 
+and do not have a serverside component , Implicit Grant is the reccomended flow. Implicit grant ensures that your app enables 
+your user to securely login and grant access to only those resources that they consent to . Implicit grant secures your app in 
+a browser enviornment.
+
+OAuth Flow 3:
+Client Credentials Flow
+when the client is well trusted, it worked very well in microservices.
+For this scenario, typical authentication schemes like username + password or social logins don't make sense. 
+Instead, M2M apps use the Client Credentials Flow, in which they pass along 
+their Client ID and Client Secret to authenticate themselves and get a token.
+
+
+Implementing Authentication with facebook and github using OAuth
+NB - is using google or facebook oauth authentication to get the profile apis to figure out who the user is.
+
+
+
+Create a new project
+dependecies
+- spring web.
+- spring security.
+- spring security oauth2 autoconfigure
+
+
+in the main.java add @EnableOAuth2Sso annotation which is gotten from the last dependecy we added.
+
+NB - you have to create an application on which companies (i.e facebook or google) you want to use there oauth service
+i.e in facebook
+after creating an application get app ID and app secret
+
+
+then change application.properties to application.yml
+in application.yml
+security:
+	oauth2:
+		client:
+			clientId: app_id
+			clientScret:	app_Secret
+			accesTokenUrl: https://graph.facebook.com/oauth/access_token
+			userAuthorizationUrl: https://www.facebook.com/dialog/oauth
+			tokenName: oauth_token
+			authenticationSchema: query
+			clientAUthenticationSchema: form
+		resource:
+			userInfoUrl: https://graph.facebook.com/men     
+
+
+Testing terminology:
+Code Under Test - This is the code (or application) you are testing
+Unit test - Unit testing is a type of testing in which individual units or functions of software testing.
+Integration test - it is the phase in software testing in which individual software modules are combined and tested as a group. 
+functional test -  is the process through which QAs determine if a piece of software is acting in accordance with pre-determined requirements.
+Test driven development -  is a software development process relying on software requirements being converted to test cases before software is fully developed, 
+and tracking all software development by repeatedly testing the software against all test cases. 
+behaviour driven development - Builds on TDD and specifies that tests of any unit of software should be specified interms of desired behavior of the unit.
+Mock - a fake implemetation of a class used for testing.
+Spy - A partial mock, allowing you to override select methods of a real class.
+
+Testing Goals:
+- Making majority of your test to be unit tests (because of speed).
+- bringing up spring context makes your tests exponentially slower.
+- try to test specific business logic in unit test.
+- use integration test to test interactions.
+- Think of a pyramid. Base is unit tests, middle is integration tests, top is functional tests
+
+Test scope dependencoes
+- JUnit - standard for unit testing java applications.
+- spring test and spring boot test - utillies and integration test support for spring boot applications.
+- AssertJ - A fluent assertion library.
+- Hamcrest - a library of matcher objects.
+- Mockito - a java mocking framework.
+- JSONassert - an assertion library for JSON.
+- JSONPath - XPath for JSON.
+
+ 
+JUnit4 annotations
+@Test - identifies a method as a test method
+@Before - executed before each test. it is used to prepare the test enivronment 
+@After - excuted after each test. it is used to cleanup the test environment.
+@BeforeClass - excuted once, before the start of all test. methods marked with this annotation need to be defined as staticto work with Junit.
+@AfterClass - excuted once, after the test have been completed. methods marked with this annotation need to be defined as staticto work with Junit
+@Ignore - marks that the test should be disabled.
+@Test(expected = Exception.class) - fails if the method doesnt throw the named exception.
+@Test(timeout = 10) - fails if the method takes longer than 100 millseconds.
+
+Spring boot annotation
+@RunWith(SpringRunner.class): run test with spring context
+@SpringBootTest - search for spring boot application for configuration.
+@TestConfiguration - specify a spring configuration for your test.
+@MockBean - inject mockito mock
+@SpyBean - inject mockito spy
+@JsonTest - created a jackson or gson object mapper via spring boot
+@WebMvcTest - used to test web context without a full server
+@DataJpaTest - used to test data layer with embedded database.
+@JdbcTest = like @DataJpatest but does not configure entity manager.
+@DataMongoTest - configures an embedded mongodb for testing.
+@RestClientTest - creates a mock serve for testing rest clients
+@AutoConfigureRestDocks -allows you to used spring rest docs in test. creating API documentation.
+@BootStrapWith - used to configure how the TestContext is bootstrapped.
+@ContextConfiguration - used to direct spring how to configure the context for the test.
+@ContextHierachy - allow you to create a context hierarchy with @ContextConfiguration.
+@ActiveProiles - set with spring profiles are active for the test.
+@TestPropertySource - Configure the property sources for the test.
+@DirtiesContext Resets - the Spring Context after the test (expensive to do)
+@WebAppConfiguration - Indicates Spring should use a Web Application context
+@TestExecutionListeners - Allows you to specify listeners for testing events
+@Transactional - Run test in transaction, rollback when complete by default
+@BeforeTranasaction - Action to run before starting a transaction.
+@AfterTransaction Action - to run after a transaction.
+@Commit - Specifies the transaction should be committed after the test.
+@Rollback - Transaction should be rolled back after test. (Default action)
+@Sql - Specify SQL scripts to run before
+@SqlConfig - Define meta data for SQL scripts
+@SqlGroup - Group of @Sql annotations
+@Repeat - Repeat test x number of times
+@Timed - Similar to JUnit’s timeout, but will wait for test to complete, unlike JUnit.
+@IfProfileValue - Indicates test is enabled for a specific testing environment
+@ProfileValueSourceConfiguration - Specify a profile value source
+
+
+dependencies needed:
+- spring-boot-starter-test: which install all other spring test depencies 
+
+the test file -> project folder -> src -> test -> java -> com.example.projectName -> projectNameTest.java
+Creating Junit test:
+@SpringBootTest
+public class RecipeApplicationTests {
+
+	@Test
+	public void contextLoads() {
+	}
+
+} 
+
+Note: 
+To create a new unit test:
+- Go to the java class you want to test and enter Alt + enter on the class name,to create a test file.
+- Intellij will generate a folder and a test class for the class in the test folder.
+
+Junit5:
+JUnit 5 leverages new features of Java 8
+• Lambda Expressions
+• Streams
+• Java 8 or Higher is required
+• Designed for better integration and extensibility
+
+JUnit vintage
+- provides a tes runner for JUnit3 and 4 test using Junit5.
+- allows easy migration to Junit5
+New Annotation
+Junit 4									JUnit 5
+@Test(expected = Foo.class) 						Assertions.assertThrows(Foo.class…
+@Test(timeout = 1) 							Assertions.assertTimeout(Duration…
+@RunWith(SpringJUnit4ClassRunner.class)				@ExtendWith(SpringExtension.class)
+@Before 									@BeforeEach
+@After 									@AfterEach
+@BeforeClass 								@BeforeAll
+@AfterClass 								@AfterAll
+@Ignored 									@Disabled
+@Category 									@Tag
+
+Exception Handling in Spring MVC:
+@ResponseStatus - allows you to annotate custom exception classes to indicate to the framework the http
+status you want to returned when that exception is thrown.
+@ExceptionHander - works at the controller level, which allows you to define custom exception handling.
+			- it can be used with @ResponseStatus to return http status 
+			- can be used to return a specific view.
+HandlerExceptionResolver - is an interface you can implement for custom exception handling, it used internally by spring mvc.
+Internal Spring mvc Exception handlers
+- Spring MVC has 3 implementations of HandlerExceptionResolver:
+	- ExceptionHandlerExceptionResolver: matches uncaught exception to @ExceptionHandler.
+	- ResponseStatusExceptionResolver: looks for uncaught exceptions matching @ResponseStatus.
+	- DefaultHandlerExceptionResolver: conver standard string exceptions to http status codes.
+
+Custom HandlerExceptionResolver
+- You can provide your own implementations of HandlerExceptionResolver.
+- Typically implemented with Spring’s Ordered interface to define order the handlers will run in.
+- Custom implementations are uncommon due to Spring robust exception handling.
+
+SimpleMappingExceptionResolver
+- A Spring Bean you can define to map exceptions to specific views.
+- You only define the exception class name (no package) and the view name.
+- You can optionally define a default error page.
+
+Which to Use When?
+Depends on your specific needs
+• If just setting the HTTP status - use @ReponseStatus.
+• If redirection to a view, Use SimpleMappingExceptionResolver.
+• If both, consider @ExceptionHandler on the controller.
+
+
+Java bean validation:
+- it is used to set annotation used to validate java bean properties.
+standard validators annotations:
+- @AssertFalse 
+- @Min
+- @AssertTrue 
+- @NotNull
+- @DecimalMax 
+- @Null
+- @DecimalMin 
+- @Past
+- @Digits 
+- @Pattern
+- @Future 
+- @Size
+- @Max
+
+Hibernate Validators
+- @CreditCardNumber 
+- @NotBlank
+- @Currency 
+- @NotEmpty
+- @EAN 
+- @ParameterScriptAssert
+- @Email 
+- @Range
+- @Length 
+- @SafeHtml
+- @LunhCheck 
+- @ScriptAssert
+- @Mod10Check 
+- @URL
+- @Mod11Check
+
+
+Docker
+What is docker?
+docker is a standerd for linux containers.
+A 'container' is an isolated runtime inside of linux, it provides a private machine like a space 
+under linux.
+Containers can have:
+- their own process space.
+- own network interface.
+- 'run' processes as root.
+- have their own disk space.
+
+it is works as a virtual machine but it isnt a vm.
+
+Docker Terminology
+- docker image: the representation of a docker container. more like a JAR or WAR file in java.
+- docker container: the standard runtime of docker. Effectively a deployed and running docker image.
+- docker engine - the code which manages docker stuff. creation of container, bring it down etc.
+
+
+docker daemon -> REST API -> Client CLI (which manages the container and images).
+
+Docker Editions -> Docker Enterprise edition vs docker community edition.
+
+Docker enterprise edition -> 
+- Caas (Container as a service) platform subscription.
+- Enterprise class support
+- certified infrastructure.
+
+Docker community edition -> 
+- free docker edition for developers and operations.
+- monthly edge release.
+
+Docker version -> yy.mm.v.ed
+
+
+Hello world in Docker -> 
+- docker run hello-world
+This command will download the hello-world Docker image from the Dockerhub, if not present already, and run it.
+- docker run alpine:latest "echo" "Hello, World"
+This command downloads the Alpine baseimage the first time and creates a Docker container.  
+It then runs the container and executes the echo command.  The echo command echoes
+the “Hello, World” string.  As a result, you should see the output as below.
+
+Docker hub
+What is docker hub?
+- it is a service provided by Docker for finding and sharing container images with your team.
+
+docker pull imageName i.e docker pull mysql
+
+KiteMatic
+What is kiteMatic -> it is a GUI tool for running images Lena from docker hub.
+- it automates the Docker installation and setup process and provides an intuitive graphical 
+user interface (GUI) for running Docker containers.
+
+list of commonly used docker commands:
+- docker images -a or docker images -> list all docker images.
+- docker ps  -> list all running docker containers.
+- docker ps -a -> list all docker containers.
+- docker start <container name> -> start a container.
+- docker stop <container name> -> stop a container.
+- docker kill $(docker ps -q) -> kill all running containers.
+- docker logs -f <container id> or docker logs -f <container name> -> shows info from log files.
+- docker logs <container name> -> view the logs of a running docker container.
+- docker rm $(docker ps -a -q) -> delete all stopped docker containers.
+- docker rmi <image name>  -> Remove a Docker Image
+- docker rmi $(docker images -q) ->Delete All Docker Images
+- docker rmi $(docker images -q -f dangling=true)  -> Delete All Untagged (dangling) Docker Images
+- docker rmi $(docker images -q) -> Delete All Images
+- docker volume rm -f $(docker volume ls -f dangling=true -q) -> Remove Dangling Volumes
+
+
+
+Running mongodb in docker container -> 
+- docker pull mongo -> to install mongo into your container.
+- docker run -d mongo -> to run mongo instance or.
+- docker run --name some-mongo -d mongo -> start a momgo instance in your docker container.
+- docker run -p 27017:27017 -d mongo -> to run docker and map the host port 27017 the container port of 27017.
+
+Docker Images: 
+docker images are like class files defined in java, when the class file is running. it been instantiate
+in the JVM. an instance of that class file is kind of a docker container.
+docker image  -> is the class file.
+docker container -> is the instante of that class file.
+an image defines a docker container. similar in concept to a snapshot of a vm.
+Images are immutable -> they dont change once built.
+Images are built in layers
+- each layers is an immutable files but is a collection of files and directories.
+- layer receive an ID, calculated via a SHA 256 hash of the layer content.
+
+docker image inspect mongo -> to display the images making up mongo.
+docker images -q --no-trunc  -> shows the full sha256 id
+docker images -> shows the images and image Id (which is the first 12 characters of the sha256 id)
+
+
+image tag names
+- the hash values of images are refered to by tag names.
+- image full tag name is [RegistryHost/][Username/]Name[:Tag]
+i.e:
+for registry host 'registry.hub.docker.com' is inferred
+for ':tag'- 'latest' is default and inferred.
+
+full tag example : 'registry.hub.docker.com/mongo:latest'
+
+
+Docker Files -> 
+it is a recipe for the image.
+- docker images can inherit from each other.
+
+Non Persistent Container Storage
+- when a container goes down and comes back up, the last layer will get created as a new layer and the data will disapper.
+- so it useful to connect to an external storage system or persistent storage.
+
+Assigning Storage -> 
+telling the mongo instance to map to a specific directory on the host machine, so as to safe
+the data even when the instance is down
+
+-> first setup create a directory to store the data.
+
+- docker run --name some-mongo -v /my/own/datadir:/data/db -d mongo -> to setup persistent storage in a 
+particular directory.
+
+-v /my/own/datadir:/data/db -> it is to add the directory config to the docker image properties.
+
+-> docker run -p 27017:27017 -v C:\Users\fafow\Documents\dockerdata\mongo:/data/db -d mongo.
+explanation:
+it will run the docker image, map the host port to the container port den map the host directory to the
+container directory of data/db. 
+
+
+Rabbit MQ -> 
+
+Idea behiind Message queue or broker -> 
+Two servies (checkout and inventory service) comminucate through TCP which isnt effect due
+- if the inventory service is down the process will keep trying till it's back up.
+- or if the messages are more the inventory wouldnt be keep up with process.
+
+Using Message queues 
+it sit between servies the two services (checkout and inventory service) that are commnicating with each other.
+- the message queue services a storage to temporarly hold the messages in a queue while the checkout service moves to the next task.
+- when the inventory service is ready, it consume from the queue process the message and immediately consumes the next message.
+- it decouple the two servies.
+- it also helps with scalability.
+- it aslo helps with performace.
+
+
+Rabbit MQ -> is a message broker that implements advanced message quening protocol (AMQP).
+AMQP standardizes messaging using producers, broker and consumers.
+
+Idea behind Rabbit MQ
+- It uses an exchange instead of a message queue.
+- An exchange distribute the messages according to how they are addressed, it can be connected to many queues,
+and the queues are connected to the consumers.
+- The exchange are connected to the queue through connections called bindings, 
+the bindings can be reference by the binding keys.
+
+Types of exchange carried out?
+1. fanout exchange - more like broadcast, sending to message to every single queue connected to the exchange.
+2. direct exhange - it uses the rooting key and the binding key to map a message to a particular queue,
+   if the rooting key and binding key are the same.
+3. topic exchange - doing a partial map between the rooting key and binding key, where they dont need to be totally
+   equal before it is mapped to a queue (i.e rooting key="ship.shoe" and binding key="ship.any" are partially the same)
+4. header exchange - the rooting key is ignored completely and the message is mapped accoridng to the header.
+5. default exchange - the rooting key is tagged to the name of the key itself.
+
+advantages
+- cloud friendly.
+- cross-language.
+- security
+- acks
+- management
+- plug-in
+
+
+Rabbit MQ container -> 
+- docker pull rabbitmq -> to download the rabbitmq image
+- docker run -d --hostname my-rabbit --name some-rabit -p 8080:15672 -p 5671:5671 -p 5672:5672 rabbitmq:3-management -> 
+	- running an instance of the rabbitmq image.
+	- d -> running it in the background.
+	- hostname gives the host name my-rabbit.
+	- name for the name of the container.
+	- a port mapping localhost port 8080 to the container port of 15672 (for the management console).
+	- a port mapping host port 5671 to the container port 5671.
+	- a port mapping host port 5672 to the container port 5672.
+	
+MySQL in a docker container -> 
+create a directory for your data files
+- docker pull mysql
+- docker run --name tobey-mysql -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -v C:\Users\fafow\Documents\dockerdata\mysql:/var/lib/mysql -p 3306:336 -d mysql
+	- running an instance of the mysql image.
+	- container name of tobey-mysql.
+	- setting the environmental variable of allow empty password
+	- -v  -> volume
+	- mapping the host directory to container directory to store the data
+	- mapping the host port to the container port.
+
+
+Docker House Keeping:
+- developmement with Docker can leave behind a lot of files, and this files grow and consume a lot of disk space.
+- there are 3 key areas of house keeping 
+ 	- container.
+	- images.
+	- volumes.
+
+Cleaning up containers
+- kill all running docker containers
+	- docker kill $(docker ps -q)
+- delete all stopped docker containers
+	- docker rm $(docker ps -a -q)
+
+Cleaning up images
+- remove a docker image
+	- docker rmi <image name>
+- delete untagged(dangling) images
+	- docker rmi $(docker images -q -f dangling=true)
+- delete all image
+	- dokcer rmi $(docker images -q)
+
+Note: -q: quiet, -f: filter.
+
+Cleaing up volumes
+- remove all dangling volues
+	- docker volume rm $(docker volume ls -f dangling=true -q)
+ 
+
+Creating a custom image
+CentOS Image setup and java installation
+	- docker run -d centos
+	- docker ps (no image will show)
+	- docker logs <image-name>
+	Note -> centos doesnt have the command to keep the image running.
+	- docker run -d centos tail -f /dev/null
+	Note -> it is giving a command that's never going to end
+	- docker ps
+	- docker exec -it <container-name> bash
+	Note -> it: interactive mode, to go into the image.
+	the above code is saying docker excuete interactively against the container name bash
+	- whoami
+	- ls
+	- ps -ef -> to see tins that are running. 
+	- java -version
+	- yum install java -> to install java.
+
+ 
+Running Spring book from a docker container
+- we are putting the springboot jar in the docker image.
+- fat jar -> it has everything self containered which is an excutable jar that includes all the dependecies.
+- which is located in the target directory -> run the package command in maven to get it.
+
+create a folder
+- copy the jar file into it 
+- create a docker file.
+
+content of the docker file (DockerFile).
+FROM centos
+
+RUN yum install -y java -> installation of java 
+VOLUMN /tmp -> sprin-boot will store value in the tmp file
+ADD /spring.boot-web-0.0.1-SNAPSHOT.jar myapp.ja -> adding from the current director add the snapshot and it is added as myapp.jar
+RUN sh -c 'touch /myapp.jar' -> touch the jar and updates the dates on the jar file
+ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/myapp.jar"] -> entrypoint, the command that docker image is going run when its running in a container
+
+To build the it
+- docker build -t spring-boot-docker .
+	Note: -t -> tag, we are tagging the image with spring-boot-docker.
+- docker run -d -p 8080:8080 spring-boot-docker
+- check the logs -> docker logs <container-name>
+
+
+
+MySQL -> a relational database management system. 
+
+
+ 
+
+
+
+
+
+
+
