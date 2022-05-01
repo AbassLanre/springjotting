@@ -154,7 +154,7 @@ which helps in separaating concerns.
 
 Database concerns shouldnt be done in the controller
 request goes to controller(http) the controller determines how to get the model the returns the model to the view, the model shouldnt have any business logic,'the controller determines who to ask the model from. the view just renders the view to client
-for spring, we would be using thymeleaf(a templating engine) take the model
+for spring, we would be using thymeleaf(a templating engine) take the model a POJO and look at our template and generate the html to return back to our client
 
 WebJars - are client side dependencies packaged into JAR archive files. They work with most JVM containers and web frameworks. 
 
@@ -165,15 +165,41 @@ Best practices in software design
 - software development lifecycle.
 
 Solid principles of OOP:
-	- Single Responsibility Principle
-		- every class should have a single responsibility.
-		- there should never be more than one reason for a class to change.
-	- Open Closed Principle
-		- your class should be open for extension but closed for modification.
-		- use private vairables with getters and setters - only when you need them
+S - Single Responsibility Principle
+        - every class should have a single responsibility.
+        - there should never be more than one reason for a class to change.
+        - your classses should be small, not more than a screen full
+        - Avoid god classes and split big classes into smaller classes.
+
+O - Open Closed Principle
+        - your class should be open for extension but closed for modification.
+        - use private vairables with getters and setters - only when you need them
+        - Use Abstract classes
+
+L - Liskov Substitutuion Principle
+        - Objects in a program should be replaceable with instances of their subtypes without altering the correctness of the program
+        - A square is a rectangle but not vice versa
+
+I - Interface segregation Principle
+        - make fine grained interfaces that are client specific
+        - keep your components focused to minimize dependencies between them
+        - many client specific interfaces are better thhan one general purpose interface
+
+D - Dependency inversion principle
+        - Abstraction should not depend upon details
+        - Details should depend upon abstractions
+        - higher level and lower level objects depend on the same abstract interaction
+        - th is is not the same as dependency injection which is how objects obtain dependent objects
+
 
 Dependency Injection -is where a needed dependency is injected by another object.
 the class being injected has no responsiblity in instantiating the object being injected.
+
+Best to use constructors for dependency injection
+
+Dependency injection using interfaces is highly preferred
+
+Inversion of control(IoC) allows dependencies to be injected at runtime.
 
 Spring Configuration Options:
 - XML based configuration: it was introduced in spring framework 2.0, it is common in legacy spring application 
@@ -193,13 +219,18 @@ Avaiable Stereotypes - @Component (highest level)
 		       @Repository - a mechanism for encpsulating storage, retrieval and search behaviour which emulates a collection of objects
 		       @Service - an operation offered as an interface that stands alone in the model, with no encapsulated state.
 		       @RestController (convenience annotation representing @Controller and @ResponseBody)
-
+               @Qualifier - th is tells spring which bean you want to have injected.
 Spring mvc - controller, service, model.
 
 Controller
 - a java class
 - marked with an annotations (@RESTController(for both classes and method) 
 - to make a class rest controller - you can have method mapped to a particular request when a user makes the request, 
+
+
+
+JIRA- used for planning tasks, utilised by various companies
+
 
 @RequestMapping(value=url,method= RequestMethod.GET,.POST,.PUT,.PATCH,.DELETE)
 (method is included for only methods)- it takes the url that the method needs to map too and the http method).
@@ -1720,9 +1751,6 @@ MySQL -> a relational database management system.
 
 
  
-
-
-
 
 
 
